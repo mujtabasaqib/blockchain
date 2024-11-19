@@ -1,4 +1,28 @@
 import * as  crypto from 'crypto';
+import * as fs from 'fs';
+
+const filePath = 'blockchain.json';
+
+function saveBlockchain(blockchain: Block[]) {
+  fs.writeFileSync(filePath, JSON.stringify(blockchain, null, 2));
+}
+
+function loadBlockchain(): Block[] | null {
+  if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8');
+      const parsedData = JSON.parse(data);
+
+      // Convert each parsed JSON block back into a Block instance
+      return parsedData.map((block: any) => new Block(
+          block.prevHash,
+          // Deserialize transaction from a plain object to a Transaction instance
+          new Transaction(block.transaction.amount, block.transaction.sender, block.transaction.receiver),
+          block.timestamp
+      ));
+  } else {
+      return null; // Return null if no data exists (first run)
+  }
+}
 
 class Transaction {
   constructor(
@@ -34,13 +58,16 @@ class Chain {
   chain: Block[]
 
   constructor() {
-    this.chain = [];
-    this.createGenesisBlock();
+    // Load blockchain from file or create a new one
+    const savedBlockchain = loadBlockchain();
+    this.chain = savedBlockchain ? savedBlockchain : [this.createGenesisBlock()];
+    //this.chain = [];
+    //this.createGenesisBlock();
     //this.chain = [new Block('', new Transaction(100, 'genesis', 'satoshi'))]
   }
 
   createGenesisBlock(){
-    this.chain.push(new Block('', new Transaction(100, 'genesis', 'satoshi')))
+    return new Block('', new Transaction(100, 'genesis', 'satoshi'));
   }
 
   get lastBlock(){
@@ -56,6 +83,7 @@ class Chain {
       const block = new Block(this.lastBlock.hash, transaction);
       this.mine(block.nonce);
       this.chain.push(block);
+      saveBlockchain(this.chain);
     }
   }
 
@@ -112,11 +140,11 @@ const satoshi = new Wallet();
 const bob = new Wallet();
 const alice = new Wallet();
 const rick = new Wallet();
-satoshi.createTransaction(50, bob.publicKey);
-bob.createTransaction(25, satoshi.publicKey);
-alice.createTransaction(10, bob.publicKey);
-satoshi.createTransaction(10, alice.publicKey);
-rick.createTransaction(30, alice.publicKey);
-satoshi.createTransaction(10, rick.publicKey);
+satoshi.createTransaction(51, bob.publicKey);
+bob.createTransaction(23, satoshi.publicKey);
+alice.createTransaction(13, bob.publicKey);
+satoshi.createTransaction(19, alice.publicKey);
+rick.createTransaction(33, alice.publicKey);
+satoshi.createTransaction(11, rick.publicKey);
 
 console.log(Chain.instance);
